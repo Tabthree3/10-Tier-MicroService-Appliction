@@ -11,32 +11,41 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+# Use a specific image with its SHA256 digest to ensure consistency
 FROM node:20.8.0-alpine@sha256:37750e51d61bef92165b2e29a77da4277ba0777258446b7a9c99511f119db096 as base
 
+# Create a builder stage
 FROM base as builder
 
-# Some packages (e.g. @google-cloud/profiler) require additional
-# deps for post-install scripts
+# Install additional dependencies needed for building
 RUN apk add --update --no-cache \
     python3 \
     make \
     g++
 
+# Set the working directory
 WORKDIR /usr/src/app
 
+# Copy package.json and package-lock.json to the working directory
 COPY package*.json ./
 
+# Install only production dependencies
 RUN npm install --only=production
 
+# Create a new stage
 FROM base
 
+# Set the working directory
 WORKDIR /usr/src/app
 
+# Copy node_modules from the builder stage
 COPY --from=builder /usr/src/app/node_modules ./node_modules
 
+# Copy the application code
 COPY . .
 
+# Expose the port on which the application will run
 EXPOSE 50051
 
+# Define the entry point for the container
 ENTRYPOINT [ "node", "index.js" ]
